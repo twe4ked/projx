@@ -18,7 +18,7 @@ fn main() {
 
     // Init command
     if input == "init" {
-        let function_name = args.next().unwrap_or_else(|| "jx".to_string());
+        let function_name = args.next().unwrap_or_else(|| "projx".to_string());
         println!(r##"{}() {{ cd "$({} $1)" }}"##, function_name, program_name);
         process::exit(0);
     }
