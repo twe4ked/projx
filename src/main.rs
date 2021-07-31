@@ -122,21 +122,35 @@ fn run(input: String, projects_base_directory: PathBuf) -> Result<String, String
         // Create the project directory
         fs::create_dir_all(&project_directory).map_err(|_| "unable to create directory")?;
 
-        // If an error occurs after this point don't try to delete the project_directory because
-        // there are too many edge cases to worry about when deleting things.
+        let cleanup_empty_dirs = || {
+            let repo_dir = &project_directory;
+            let _ = fs::remove_dir(&repo_dir);
+            let owner_dir = repo_dir.parent().unwrap();
+            let _ = fs::remove_dir(&owner_dir);
+            let provider_dir = owner_dir.parent().unwrap();
+            let _ = fs::remove_dir(&provider_dir).map_err(|e| format!("{}", e));
+        };
 
         // Clone repo
-        let status = Command::new("git")
+        match Command::new("git")
             .arg("clone")
             .arg(&repository.url())
             .arg(&project_directory)
             .status()
-            .map_err(|_| "failed to execute git".to_string())?;
-        if !status.success() {
-            return Err(format!(
-                "git command was unsuccessful: {}",
-                status.code().unwrap_or(1)
-            ));
+        {
+            Ok(status) => {
+                if !status.success() {
+                    cleanup_empty_dirs();
+                    return Err(format!(
+                        "git command was unsuccessful: {}",
+                        status.code().unwrap_or(1)
+                    ));
+                }
+            }
+            Err(_) => {
+                cleanup_empty_dirs();
+                return Err("failed to execute git".to_string());
+            }
         }
     }
 
