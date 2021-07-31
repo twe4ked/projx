@@ -23,20 +23,7 @@ fn main() {
         process::exit(0);
     }
 
-    let projects_base_directory = PathBuf::from(env::var("PROJX_DIR").unwrap_or_else(|_| {
-        eprintln!("error: PROJX_DIR environment variable not set");
-        process::exit(1);
-    }));
-
-    if !projects_base_directory.is_dir() {
-        eprintln!(
-            "error: PROJX_DIR is not a directory: {}",
-            projects_base_directory.display()
-        );
-        process::exit(1);
-    }
-
-    match run(input, projects_base_directory) {
+    match run(input) {
         Ok(project_directory) => println!("{}", project_directory),
         Err(error) => {
             eprintln!("error: {}", error);
@@ -114,7 +101,18 @@ impl Repository {
     }
 }
 
-fn run(input: String, projects_base_directory: PathBuf) -> Result<String, String> {
+fn run(input: String) -> Result<String, String> {
+    let projects_base_directory = PathBuf::from(
+        env::var("PROJX_DIR").map_err(|_| "PROJX_DIR environment variable not set".to_string())?,
+    );
+
+    if !projects_base_directory.is_dir() {
+        return Err(format!(
+            "PROJX_DIR is not a directory: {}",
+            projects_base_directory.display()
+        ));
+    }
+
     let repository = Repository::parse(input)?;
     let project_directory = projects_base_directory.join(repository.directory());
 
