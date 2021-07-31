@@ -37,6 +37,16 @@ enum Provider {
     Gitlab,
 }
 
+impl Provider {
+    fn parse(input: &str) -> Result<Self, String> {
+        match input {
+            "github.com" => Ok(Provider::Github),
+            "gitlab.com" => Ok(Provider::Gitlab),
+            _ => Err(format!("unsupported git provider: {}", input)),
+        }
+    }
+}
+
 struct Repository {
     owner: String,
     name: String,
@@ -49,13 +59,7 @@ impl Repository {
             let mut path_segments = url.path_segments().ok_or("no base")?;
             let owner = path_segments.next().ok_or("no owner")?.to_string();
             let name = path_segments.next().ok_or("no repo")?.to_string();
-
-            let provider = match url.host_str().ok_or("no host")? {
-                "github.com" => Provider::Github,
-                "gitlab.com" => Provider::Gitlab,
-                _ => return Err(format!("unsupported git provider: {}", url)),
-            };
-
+            let provider = Provider::parse(url.host_str().ok_or("no host")?)?;
             (owner, name, provider)
         } else {
             // If we're not parsing a URL, treat the input as "provider/owner/repo"
@@ -63,13 +67,7 @@ impl Repository {
             let provider = parts.next().ok_or("no provider")?;
             let owner = parts.next().ok_or("no owner")?.to_string();
             let name = parts.next().ok_or("no repo")?.to_string();
-
-            let provider = match provider {
-                "github" => Provider::Github,
-                "gitlab" => Provider::Gitlab,
-                _ => return Err(format!("unknown provider: {}", provider)),
-            };
-
+            let provider = Provider::parse(provider)?;
             (owner, name, provider)
         };
 
